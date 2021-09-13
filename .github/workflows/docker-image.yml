@@ -36,8 +36,8 @@ jobs:
         context: ./${{ matrix.versions }}
         file: ./${{ matrix.versions }}/Dockerfile
         platforms: linux/amd64
-        build-args:
-          - ELASTIC_VERSION=${{ matrix.versions }}
+        build-args: |
+          ELASTIC_VERSION=${{ matrix.versions }}
         pull: true
         push: true
         tags: |
