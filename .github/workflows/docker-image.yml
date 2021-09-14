@@ -15,7 +15,7 @@ jobs:
       matrix:
         versions: ['7.14.1']
     env:
-      repo: "govpf/hello" # Please don't forget to create the repo on Docker Hub
+      repo: "govpf/elasticsearch"
     steps:
 
     - name: Checkout
