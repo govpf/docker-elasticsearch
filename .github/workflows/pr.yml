@@ -27,6 +27,6 @@ jobs:
         build-args: |
           ELASTIC_VERSION=${{ matrix.versions }}
         pull: true
-        push: true
+        push: false
         tags: |
           ${{ env.repo }}:${{ matrix.versions }}
