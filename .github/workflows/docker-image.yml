@@ -30,7 +30,7 @@ jobs:
 
     - name: Get build date
       id: build-date
-      shell: |
+      run: |
         echo "::set-output name=BUILD_DATE::$(date +"%Y-%m-%dT%H:%M:%SZ")"
 
     - name: Build and push
