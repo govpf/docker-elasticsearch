@@ -31,7 +31,7 @@ jobs:
     - name: Get build date
       id: build-date
       run: |
-        echo "::set-output name=BUILD_DATE::$(date +"%Y-%m-%dT%H:%M:%SZ")"
+        echo "::set-output name=BUILD_DATE::$(date +"%Y-%m-%dT%H:%M:%S.%NZ")"
 
     - name: Build and push
       uses: docker/build-push-action@v2.7.0
