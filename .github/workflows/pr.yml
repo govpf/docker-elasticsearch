@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        versions: ['7.14.1']
+        versions: ['7.16.1']
     env:
       repo: "govpf/elasticsearch"
     steps:
