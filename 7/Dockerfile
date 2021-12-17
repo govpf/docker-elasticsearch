@@ -1,4 +1,23 @@
-FROM govpf/centos:8 AS builder
+################################################################################
+# Build stage 0 `zlib`:
+# Compile zlib for the current architecture
+################################################################################
+FROM govpf/debian:bullseye AS zlib
+ENV ZLIB_VERSION 1.2.8
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl gcc make
+WORKDIR /tmp
+RUN curl --retry 10 -S -L -o zlib-${ZLIB_VERSION}.tar.gz https://github.com/cloudflare/zlib/archive/refs/tags/v${ZLIB_VERSION}.tar.gz
+RUN echo "7e393976368975446b263ae4143fb404bc33bf3b436e72007700b5b88e5be332cd461cdec42d31a4b6dffdca2368550f01b9fa1165d81c0aa818bbf2b1ac191e zlib-${ZLIB_VERSION}.tar.gz" | sha512sum --check -
+RUN tar xf zlib-${ZLIB_VERSION}.tar.gz
+WORKDIR /tmp/zlib-${ZLIB_VERSION}
+RUN ./configure --prefix=/usr/local/cloudflare-zlib && make && make install
+
+################################################################################
+# Build stage 1 `builder`:
+# Extract Elasticsearch artifact
+################################################################################
+
+FROM govpf/debian:bullseye AS builder
 
 # `tini` is a tiny but valid init for containers. This is used to cleanly
 # control how ES and any child processes are shut down.
@@ -34,59 +53,58 @@ COPY config/elasticsearch.yml config/
 COPY config/log4j2.properties config/log4j2.docker.properties
 
 #  1. Configure the distribution for Docker
-#  2. Ensure directories are created. Most already are, but make sure
-#  3. Apply correct permissions
-#  4. Move the distribution's default logging config aside
-#  5. Generate a docker logging config, to be used by default
-#  6. Apply more correct permissions
-#  7. The JDK's directories' permissions don't allow `java` to be executed under a different
-#     group to the default. Fix this.
-#  8. Remove write permissions from all files under `lib`, `bin`, `jdk` and `modules`
-#  9. Ensure that there are no files with setuid or setgid, in order to mitigate "stackclash" attacks.
-# 10. Ensure all files are world-readable by default. It should be possible to
-#     examine the contents of the image under any UID:GID
+#  2. Create required directory
+#  3. Move the distribution's default logging config aside
+#  4. Move the generated docker logging config so that it is the default
+#  5. Reset permissions on all directories
+#  6. Reset permissions on all files
+#  7. Make CLI tools executable
+#  8. Make some directories writable. `bin` must be writable because
+#     plugins can install their own CLI utilities.
+#  9. Make some files writable
 RUN sed -i -e 's/ES_DISTRIBUTION_TYPE=tar/ES_DISTRIBUTION_TYPE=docker/' bin/elasticsearch-env && \
-    mkdir -p config/jvm.options.d data logs plugins && \
-    chmod 0775 config config/jvm.options.d data logs plugins && \
+    mkdir data && \
     mv config/log4j2.properties config/log4j2.file.properties && \
     mv config/log4j2.docker.properties config/log4j2.properties && \
-    chmod 0660 config/elasticsearch.yml config/log4j2*.properties && \
-    find ./jdk -type d -exec chmod 0755 {} + && \
-    chmod -R a-w lib bin jdk modules && \
-    find . -xdev -perm -4000 -exec chmod ug-s {} + && \
-    find . -type f -exec chmod o+r {} +
+    find . -type d -exec chmod 0555 {} + && \
+    find . -type f -exec chmod 0444 {} + && \
+    chmod 0555 bin/* jdk/bin/* jdk/lib/jspawnhelper modules/x-pack-ml/platform/linux-*/bin/* && \
+    chmod 0775 bin config config/jvm.options.d data logs plugins && \
+    find config -type f -exec chmod 0664 {} +
 
 ################################################################################
-# Build stage 1 (the actual Elasticsearch image):
+# Build stage 2 (the actual Elasticsearch image):
 #
-# Copy elasticsearch from stage 0
+# Copy zlib from stage 2
+# Copy elasticsearch from stage 1
 # Add entrypoint
 ################################################################################
 
-FROM govpf/centos:8
+FROM govpf/debian:bullseye
 
-RUN for iter in {1..10}; do \
-      yum update --setopt=tsflags=nodocs -y && \
-      yum install --setopt=tsflags=nodocs -y \
-      nc shadow-utils zip unzip  && \
-      yum clean all && \
-      exit_code=0 && break || \
-        exit_code=$? && echo "yum error: retry $iter in 10s" && sleep 10; \
-    done; \
-    exit $exit_code
+RUN export DEBIAN_FRONTEND=noninteractive &&  \
+    apt-get update &&  \
+    apt-get upgrade -y &&  \
+    apt-get install -y --no-install-recommends  \
+        ca-certificates curl netcat p11-kit unzip vim-tiny zip &&  \
+    apt-get clean &&  \
+    rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -g 1000 elasticsearch && \
-    adduser -u 1000 -g 1000 -G 0 -d /usr/share/elasticsearch elasticsearch && \
-    chmod 0775 /usr/share/elasticsearch && \
-    chown -R 1000:0 /usr/share/elasticsearch
+    adduser --uid 1000 --gid 1000 --home /usr/share/elasticsearch elasticsearch && \
+    adduser elasticsearch root && \
+    chown -R 0:0 /usr/share/elasticsearch
 
 ENV ELASTIC_CONTAINER true
 
 WORKDIR /usr/share/elasticsearch
-COPY --from=builder --chown=1000:0 /usr/share/elasticsearch /usr/share/elasticsearch
+
+COPY --from=builder --chown=0:0 /usr/share/elasticsearch /usr/share/elasticsearch
 COPY --from=builder --chown=0:0 /bin/tini /bin/tini
+COPY --from=zlib --chown=0:0 /usr/local/cloudflare-zlib /usr/local/cloudflare-zlib
 
 ENV PATH /usr/share/elasticsearch/bin:$PATH
+ENV ES_ZLIB_PATH /usr/local/cloudflare-zlib/lib
 
 COPY bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
@@ -97,10 +115,20 @@ COPY bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 # 4. Replace OpenJDK's built-in CA certificate keystore with the one from the OS
 #    vendor. The latter is superior in several ways.
 #    REF: https://github.com/elastic/elasticsearch-docker/issues/171
+# 5. Tighten up permissions on the ES home dir (the permissions of the contents are handled earlier)
+# 6. You can't install plugins that include configuration when running as `elasticsearch` and the `config`
+#    dir is owned by `root`, because the installed tries to manipulate the permissions on the plugin's
+#    config directory.
 RUN chmod g=u /etc/passwd && \
-    chmod 0775 /usr/local/bin/docker-entrypoint.sh && \
+    chmod 0555 /usr/local/bin/docker-entrypoint.sh && \
     find / -xdev -perm -4000 -exec chmod ug-s {} + && \
-    ln -sf /etc/pki/ca-trust/extracted/java/cacerts /usr/share/elasticsearch/jdk/lib/security/cacerts
+    chmod 0775 /usr/share/elasticsearch && \
+    chown elasticsearch bin config config/jvm.options.d data logs plugins
+
+# Update "cacerts" bundle to use Ubuntu's CA certificates (and make sure it
+# stays up-to-date with changes to Ubuntu's store)
+COPY bin/docker-openjdk /etc/ca-certificates/update.d/docker-openjdk
+RUN /etc/ca-certificates/update.d/docker-openjdk
 
 EXPOSE 9200 9300
 
@@ -131,3 +159,4 @@ RUN bin/elasticsearch-plugin install analysis-icu
 ENTRYPOINT ["/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
 # Dummy overridable parameter parsed by entrypoint
 CMD ["eswrapper"]
+USER elasticsearch:root
