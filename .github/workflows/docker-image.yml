@@ -28,6 +28,11 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
+    - name: Get build date
+      id: build-date
+      shell: |
+        echo "::set-output name=BUILD_DATE::$(date +"%Y-%m-%dT%H:%M:%SZ")"
+
     - name: Build and push
       uses: docker/build-push-action@v2.7.0
       with:
@@ -36,6 +41,7 @@ jobs:
         platforms: linux/amd64
         build-args: |
           ELASTIC_VERSION=${{ matrix.versions }}
+          BUILD_DATE=${{ steps.build-date.outputs.BUILD_DATE }}
         pull: true
         push: true
         tags: |

@@ -133,8 +133,9 @@ RUN /etc/ca-certificates/update.d/docker-openjdk
 EXPOSE 9200 9300
 
 ARG ELASTIC_VERSION=7.14.1
+ARG BUILD_DATE
 
-LABEL org.label-schema.build-date="2021-08-26T09:01:05.390870785Z" \
+LABEL org.label-schema.build-date="${BUILD_DATE}" \
   org.label-schema.license="Elastic-License-2.0" \
   org.label-schema.name="Elasticsearch" \
   org.label-schema.schema-version="1.0" \
@@ -144,7 +145,7 @@ LABEL org.label-schema.build-date="2021-08-26T09:01:05.390870785Z" \
   org.label-schema.vcs-url="https://github.com/elastic/elasticsearch" \
   org.label-schema.vendor="Elastic" \
   org.label-schema.version="${ELASTIC_VERSION}" \
-  org.opencontainers.image.created="2021-08-26T09:01:05.390870785Z" \
+  org.opencontainers.image.created="${BUILD_DATE}" \
   org.opencontainers.image.documentation="https://www.elastic.co/guide/en/elasticsearch/reference/index.html" \
   org.opencontainers.image.licenses="Elastic-License-2.0" \
   org.opencontainers.image.revision="66b55ebfa59c92c15db3f69a335d500018b3331e" \
