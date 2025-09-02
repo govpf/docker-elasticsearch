@@ -46,7 +46,7 @@ ARG ELASTIC_VERSION=7.14.1
 
 RUN curl --retry 10 -S -L --output /opt/elasticsearch.tar.gz https://artifacts-no-kpi.elastic.co/downloads/elasticsearch/elasticsearch-${ELASTIC_VERSION}-linux-$(arch).tar.gz
 
-RUN tar -zxf /opt/elasticsearch.tar.gz --strip-components=1
+RUN tar -xf /opt/elasticsearch.tar.gz --strip-components=1
 
 # The distribution includes a `config` directory, no need to create it
 COPY config/elasticsearch.yml config/
