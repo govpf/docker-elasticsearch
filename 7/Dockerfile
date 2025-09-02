@@ -3,23 +3,20 @@
 # Compile zlib for the current architecture
 ################################################################################
 FROM govpf/debian:bullseye AS zlib
-ENV ZLIB_VERSION 1.2.8
+ENV ZLIB_VERSION=1.2.8
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     curl gcc make xz-utils && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp
-# téléchargement officiel de zlib
-RUN curl --retry 10 -S -L -o zlib-${ZLIB_VERSION}.tar.gz https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz
+# téléchargement officiel zlib (format xz)
+RUN curl --retry 10 -S -L -o zlib-${ZLIB_VERSION}.tar.xz https://zlib.net/zlib-${ZLIB_VERSION}.tar.xz
 
-# vérification optionnelle du checksum (si souhaité, on peut décommenter et adapter)
-# RUN echo "checksum_expected_here  zlib-${ZLIB_VERSION}.tar.gz" | sha256sum --check -
-
-RUN tar -xzf zlib-${ZLIB_VERSION}.tar.gz
+# décompression de l'archive xz
+RUN tar -xf zlib-${ZLIB_VERSION}.tar.xz
 WORKDIR /tmp/zlib-${ZLIB_VERSION}
 RUN ./configure --prefix=/usr/local/cloudflare-zlib && make && make install
-
 ################################################################################
 # Build stage 1 `builder`:
 # Extract Elasticsearch artifact
