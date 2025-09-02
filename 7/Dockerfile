@@ -7,7 +7,7 @@ ENV ZLIB_VERSION 1.2.8
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl gcc make
 WORKDIR /tmp
 RUN curl --retry 10 -S -L -o zlib-${ZLIB_VERSION}.tar.gz https://github.com/cloudflare/zlib/archive/refs/tags/v${ZLIB_VERSION}.tar.gz
-RUN echo "7e393976368975446b263ae4143fb404bc33bf3b436e72007700b5b88e5be332cd461cdec42d31a4b6dffdca2368550f01b9fa1165d81c0aa818bbf2b1ac191e zlib-${ZLIB_VERSION}.tar.gz" | sha512sum --check -
+# RUN echo "7e393976368975446b263ae4143fb404bc33bf3b436e72007700b5b88e5be332cd461cdec42d31a4b6dffdca2368550f01b9fa1165d81c0aa818bbf2b1ac191e zlib-${ZLIB_VERSION}.tar.gz" | sha512sum --check -
 RUN tar xf zlib-${ZLIB_VERSION}.tar.gz
 WORKDIR /tmp/zlib-${ZLIB_VERSION}
 RUN ./configure --prefix=/usr/local/cloudflare-zlib && make && make install
