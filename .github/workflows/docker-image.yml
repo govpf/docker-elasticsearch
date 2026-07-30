@@ -35,8 +35,8 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v6.1.0
       with:
-        context: ./7
-        file: ./7/Dockerfile
+        context: ./7.16.2
+        file: ./7.16.2/Dockerfile
         platforms: linux/amd64
         build-args: |
           ELASTIC_VERSION=${{ matrix.versions }}
