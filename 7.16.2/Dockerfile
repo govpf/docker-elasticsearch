@@ -82,6 +82,9 @@ RUN sed -i -e 's/ES_DISTRIBUTION_TYPE=tar/ES_DISTRIBUTION_TYPE=docker/' bin/elas
 
 FROM govpf/debian:bullseye
 
+LABEL govpf.fromimage="govpf/debian:bullseye"
+LABEL govpf.category="database"
+
 RUN export DEBIAN_FRONTEND=noninteractive &&  \
     apt-get update &&  \
     apt-get upgrade -y &&  \
