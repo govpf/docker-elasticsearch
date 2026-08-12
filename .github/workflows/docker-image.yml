@@ -33,7 +33,7 @@ jobs:
         echo "::set-output name=BUILD_DATE::$(date +"%Y-%m-%dT%H:%M:%S.%NZ")"
 
     - name: Build and push
-      uses: docker/build-push-action@v6.1.0
+      uses: docker/build-push-action@v6.18.0
       with:
         context: ./7.16.2
         file: ./7.16.2/Dockerfile
