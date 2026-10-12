@@ -17,7 +17,7 @@ RUN ./configure --prefix=/usr/local/cloudflare-zlib && make && make install
 # Extract Elasticsearch artifact
 ################################################################################
 
-FROM govpf/debian:bullseye AS builder
+FROM govpf/debian:bookworm AS builder
 
 # `tini` is a tiny but valid init for containers. This is used to cleanly
 # control how ES and any child processes are shut down.
@@ -80,9 +80,9 @@ RUN sed -i -e 's/ES_DISTRIBUTION_TYPE=tar/ES_DISTRIBUTION_TYPE=docker/' bin/elas
 # Add entrypoint
 ################################################################################
 
-FROM govpf/debian:bullseye
+FROM govpf/debian:bookworm
 
-LABEL govpf.fromimage="govpf/debian:bullseye"
+LABEL govpf.fromimage="govpf/debian:bookworm"
 LABEL govpf.category="database"
 
 RUN export DEBIAN_FRONTEND=noninteractive &&  \
