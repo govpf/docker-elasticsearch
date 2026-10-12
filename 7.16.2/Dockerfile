@@ -2,7 +2,7 @@
 # Build stage 0 `zlib`:
 # Compile zlib for the current architecture
 ################################################################################
-FROM govpf/debian:bullseye AS zlib
+FROM govpf/debian:bookworm AS zlib
 ENV ZLIB_VERSION 1.2.8
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl gcc make
 WORKDIR /tmp
