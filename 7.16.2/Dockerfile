@@ -85,12 +85,12 @@ FROM govpf/debian:bookworm
 LABEL govpf.fromimage="govpf/debian:bookworm"
 LABEL govpf.category="database"
 
-RUN export DEBIAN_FRONTEND=noninteractive &&  \
-    apt-get update &&  \
-    apt-get upgrade -y &&  \
-    apt-get install -y --no-install-recommends  \
-        ca-certificates curl netcat p11-kit unzip vim-tiny zip &&  \
-    apt-get clean &&  \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl netcat-openbsd p11-kit unzip vim-tiny zip && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -g 1000 elasticsearch && \
